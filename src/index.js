@@ -1,0 +1,153 @@
+import { patch as _patch, currentElement, skip, renderHeading, renderElement, text } from 'idom-util';
+import { isFunction, isNull, isUndefined } from "pwet/src/assertions";
+import { decorate } from "pwet/src/utilities";
+import { $pwet } from "pwet";
+import debounce from "lodash.debounce";
+import {
+  attributes,
+  applyProp,
+  applyAttr,
+  symbols
+} from 'incremental-dom';
+
+const tagNames = [];
+
+const $initialize = Symbol('$initialize');
+const $properties = Symbol('$properties');
+const $template = Symbol('$template');
+const applyAttributeTyped = attributes[symbols.default];
+
+attributes[symbols.default] = (element, name, value) => {
+  // return void applyAttributeTyped(element, name, value);
+  if (!($pwet in element) || !tagNames.includes(element.tagName))
+    return void applyAttributeTyped(element, name, value);
+
+  const { factory } = element[$pwet];
+
+  const foundProperty = factory.properties.find(({ name:propertyName, isDataAttribute }) => {
+    return propertyName === name;
+  });
+
+  if (factory.logLevel > 0)
+    console.error(`[${factory.tagName}]`, 'IDOM', name, value, foundProperty);
+
+  if (isUndefined(foundProperty))
+    return void applyAttributeTyped(element, name, value);
+
+  if (!element[$initialize])
+    element[$initialize] = debounce(() => {
+
+      element.initialize(Object.assign(element.properties, element[$properties]));
+
+      element[$properties] = {};
+    }, 0);
+
+  if (!element[$properties])
+    element[$properties] = {};
+
+  element[$properties][name] = value;
+
+  element[$initialize]();
+};
+
+
+const patch = (element, renderMarkup) => {
+
+  if (isNull(element.shadowRoot))
+    return _patch(element, renderMarkup);
+  const template = element[$template] = element[$template] || document.createElement('template');
+  if (template.content.children.length > 0){
+    return _patch(template.content, renderMarkup);
+
+
+    // return;
+    // } else {
+    // return _patch(element.shadowRoot, renderMarkup);
+
+  }
+
+  // if (ShadyCSS.nativeShadow) {
+  //   console.log('element.shadowRoot.children=', element.shadowRoot.children)
+  //   console.log('template.content.children=', template.content.children)
+  //
+  //   if (element.shadowRoot.children.length < 1) {
+  //     _patch(template.content, renderMarkup);
+  //
+  //     element.shadowRoot.appendChild(template.content);
+  //     return;
+  //   }
+  //
+  //   return _patch(element.shadowRoot, renderMarkup);
+  // }
+
+
+  if (element.shadowRoot.children.length < 1) {
+    _patch(template.content, renderMarkup);
+    if (!ShadyCSS.nativeShadow) {
+
+      ShadyCSS.prepareTemplate(template, element.localName);
+
+      ShadyCSS.styleElement(element);
+    }
+    element.shadowRoot.appendChild(template.content);
+    return;
+  }
+
+  return _patch(element.shadowRoot, renderMarkup);
+
+  // _patch(template.content, renderMarkup);
+
+  // if (!ShadyCSS.nativeShadow) {
+
+  // }
+
+  // if (element.shadowRoot.children.length < 1)
+  //   element.shadowRoot.appendChild(template.content);
+  // else
+  //   element.shadowRoot.replaceChild(template.content.cloneNode(true), element.shadowRoot.firstChild);
+
+};
+
+
+const IDOMComponentDecorator =  (factory) => {
+
+  // console.log(`IDOMComponentDecorator(${factory.tagName})`);
+
+  // const _render = factory.render;
+  // factory.render = (component, ...args) => {
+  //   patch(component.element, _render.bind(null, component, ...args));
+  // };
+
+  const _render = (next, ...args) => {
+    patch(component.element, () => next(...args));
+  };
+
+  factory.render = decorate(factory.render, (next, component, ...args) => {
+    patch(component.element, () => next(component, ...args));
+  });
+
+  factory.create = decorate(factory.create, (next, component, ...args) => {
+    const hooks = next(component, ...args);
+
+    if (isFunction(hooks.render)) {
+      // hooks.render = decorate(factory.render, _render, component);
+      hooks.render = decorate(hooks.render, (next, ...args) => {
+        patch(component.element, () => next(...args));
+      });
+    }
+
+    return hooks;
+  });
+
+  tagNames.push(factory.tagName.toUpperCase());
+
+  return factory;
+};
+
+const renderComponent = (...args) => renderElement(...args, skip);
+
+export {
+  IDOMComponentDecorator as default,
+  patch,
+  renderComponent
+}
