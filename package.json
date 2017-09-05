@@ -24,7 +24,7 @@
     "dom"
   ],
   "dependencies": {
-    "idom-util": "^1.0.1",
+    "idom-util": "^1.0.2",
     "lodash.debounce": "^4.0.8",
     "pwet": "^1.3.8"
   }
