@@ -1,5 +1,5 @@
 import { patch as _patch, currentElement, skip, renderHeading, renderElement, text } from 'idom-util';
-import { isFunction, isNull, isUndefined } from "pwet/src/assertions";
+import { isFunction, isNull, isUndefined } from "kwak";
 import { decorate } from "pwet/src/utilities";
 import { $pwet } from "pwet";
 import debounce from "lodash.debounce";
@@ -18,6 +18,10 @@ const $template = Symbol('$template');
 const applyAttributeTyped = attributes[symbols.default];
 
 attributes[symbols.default] = (element, name, value) => {
+
+  if (name.startsWith('on-') && isFunction(value))
+    element.addEventListener(name.slice(3), value);
+
   // return void applyAttributeTyped(element, name, value);
   if (!($pwet in element) || !tagNames.includes(element.tagName))
     return void applyAttributeTyped(element, name, value);
