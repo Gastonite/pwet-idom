@@ -1,6 +1,6 @@
 import { patch as _patch, currentElement, skip, renderHeading, renderElement, text } from 'idom-util';
-import { isFunction, isNull, isUndefined } from "kwak";
-import { decorate } from "pwet/src/utilities";
+import { isFunction, isNull, isObject, isUndefined } from "kwak";
+import { decorate, noop } from "pwet/src/utilities";
 import { $pwet } from "pwet";
 import debounce from "lodash.debounce";
 import {
@@ -113,32 +113,33 @@ const patch = (element, renderMarkup) => {
 };
 
 
-const IDOMComponentDecorator =  (factory) => {
+const IDOMComponent =  (factory) => {
 
-  // console.log(`IDOMComponentDecorator(${factory.tagName})`);
+  // console.log(`IDOMComponent(${factory.tagName})`);
 
   // const _render = factory.render;
   // factory.render = (component, ...args) => {
   //   patch(component.element, _render.bind(null, component, ...args));
   // };
 
-  const _render = (next, ...args) => {
-    patch(component.element, () => next(...args));
-  };
-
   factory.render = decorate(factory.render, (next, component, ...args) => {
     patch(component.element, () => next(component, ...args));
   });
 
   factory.create = decorate(factory.create, (next, component, ...args) => {
-    const hooks = next(component, ...args);
 
-    if (isFunction(hooks.render)) {
-      // hooks.render = decorate(factory.render, _render, component);
-      hooks.render = decorate(hooks.render, (next, ...args) => {
-        patch(component.element, () => next(...args));
-      });
-    }
+    let hooks = next(component, ...args);
+
+    if (!isObject(hooks) || isNull(hooks))
+      hooks = {};
+
+    if (!isFunction(hooks.render))
+      hooks.render = noop;
+
+    // hooks.render = decorate(factory.render, _render, component);
+    hooks.render = decorate(hooks.render, (next, ...args) => {
+      patch(component.element, () => next(...args));
+    });
 
     return hooks;
   });
@@ -151,7 +152,7 @@ const IDOMComponentDecorator =  (factory) => {
 const renderComponent = (...args) => renderElement(...args, skip);
 
 export {
-  IDOMComponentDecorator as default,
+  IDOMComponent as default,
   patch,
   renderComponent
-}
+};
