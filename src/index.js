@@ -115,13 +115,6 @@ const patch = (element, renderMarkup) => {
 
 const IDOMComponent =  (factory) => {
 
-  // console.log(`IDOMComponent(${factory.tagName})`);
-
-  // const _render = factory.render;
-  // factory.render = (component, ...args) => {
-  //   patch(component.element, _render.bind(null, component, ...args));
-  // };
-
   factory.render = decorate(factory.render, (next, component, ...args) => {
     patch(component.element, () => next(component, ...args));
   });
@@ -136,7 +129,6 @@ const IDOMComponent =  (factory) => {
     if (!isFunction(hooks.render))
       hooks.render = noop;
 
-    // hooks.render = decorate(factory.render, _render, component);
     hooks.render = decorate(hooks.render, (next, ...args) => {
       patch(component.element, () => next(...args));
     });
