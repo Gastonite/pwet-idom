@@ -112,7 +112,6 @@ const patch = (element, renderMarkup) => {
 
 };
 
-
 const IDOMComponent =  (factory) => {
 
   factory.render = decorate(factory.render, (next, component, ...args) => {
@@ -126,12 +125,11 @@ const IDOMComponent =  (factory) => {
     if (!isObject(hooks) || isNull(hooks))
       hooks = {};
 
-    if (!isFunction(hooks.render))
-      hooks.render = noop;
-
-    hooks.render = decorate(hooks.render, (next, ...args) => {
-      patch(component.element, () => next(...args));
-    });
+    if (isFunction(hooks.render)) {
+      hooks.render = decorate(hooks.render, (next, ...args) => {
+        patch(component.element, () => next(...args));
+      });
+    }
 
     return hooks;
   });
