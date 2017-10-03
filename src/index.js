@@ -1,7 +1,7 @@
-import { patch as _patch, currentElement, skip, renderHeading, renderElement, text } from 'idom-util';
+import { patch, currentElement, skip, renderHeading, renderElement, text } from 'idom-util';
 import { isFunction, isNull, isObject, isUndefined } from "kwak";
 import { decorate, noop } from "pwet/src/utilities";
-import { $pwet } from "pwet";
+import { $pwet, Definition } from "pwet";
 import debounce from "lodash.debounce";
 import {
   attributes,
@@ -12,36 +12,31 @@ import {
 
 const tagNames = [];
 
-const $initialize = Symbol('$initialize');
-const $properties = Symbol('$properties');
-const $template = Symbol('$template');
-const applyAttributeTyped = attributes[symbols.default];
+const $initialize = Symbol('__initialize');
+const $properties = Symbol('__properties');
+
+
+const defaultAttributeApply = attributes[symbols.default];
 
 attributes[symbols.default] = (element, name, value) => {
 
-  if (name.startsWith('on-') && isFunction(value))
-    element.addEventListener(name.slice(3), value);
+  if (!($pwet in element))
+    return void defaultAttributeApply(element, name, value);
 
-  // return void applyAttributeTyped(element, name, value);
-  if (!($pwet in element) || !tagNames.includes(element.tagName))
-    return void applyAttributeTyped(element, name, value);
+  const { definition, initialize } = element[$pwet];
+  const { tagName, verbose, properties } = definition;
 
-  const { factory } = element[$pwet];
+  if (!(name in properties))
+    return void defaultAttributeApply(element, name, value);
 
-  const foundProperty = factory.properties.find(({ name:propertyName, isDataAttribute }) => {
-    return propertyName === name;
-  });
-
-  if (factory.logLevel > 0)
-    console.error(`[${factory.tagName}]`, 'IDOM', name, value, foundProperty);
-
-  if (isUndefined(foundProperty))
-    return void applyAttributeTyped(element, name, value);
+  if (verbose)
+    console.log('IDOM applyProperty', name, value);
+  //console.error(`[${tagName}]`, 'IDOM', name, value);
 
   if (!element[$initialize])
     element[$initialize] = debounce(() => {
 
-      element.initialize(Object.assign(element.properties, element[$properties]));
+      initialize(element[$properties], { partial: true });
 
       element[$properties] = {};
     }, 0);
@@ -54,95 +49,27 @@ attributes[symbols.default] = (element, name, value) => {
   element[$initialize]();
 };
 
+const IDOMDefinition = (definition = {}) => {
 
-const patch = (element, renderMarkup) => {
+  console.error(`<${definition.tagName}>`, 'IDOMRenderer()');
 
-  if (isNull(element.shadowRoot))
-    return _patch(element, renderMarkup);
-  const template = element[$template] = element[$template] || document.createElement('template');
-  if (template.content.children.length > 0){
-    return _patch(template.content, renderMarkup);
+  const { tagName, hooks } = definition = Definition.parseDefinition(definition);
 
+  hooks.render = decorate(hooks.render, (next, component) => {
 
-    // return;
-    // } else {
-    // return _patch(element.shadowRoot, renderMarkup);
-
-  }
-
-  // if (ShadyCSS.nativeShadow) {
-  //   console.log('element.shadowRoot.children=', element.shadowRoot.children)
-  //   console.log('template.content.children=', template.content.children)
-  //
-  //   if (element.shadowRoot.children.length < 1) {
-  //     _patch(template.content, renderMarkup);
-  //
-  //     element.shadowRoot.appendChild(template.content);
-  //     return;
-  //   }
-  //
-  //   return _patch(element.shadowRoot, renderMarkup);
-  // }
-
-
-  if (element.shadowRoot.children.length < 1) {
-    _patch(template.content, renderMarkup);
-    if (!ShadyCSS.nativeShadow) {
-
-      ShadyCSS.prepareTemplate(template, element.localName);
-
-      ShadyCSS.styleElement(element);
-    }
-    element.shadowRoot.appendChild(template.content);
-    return;
-  }
-
-  return _patch(element.shadowRoot, renderMarkup);
-
-  // _patch(template.content, renderMarkup);
-
-  // if (!ShadyCSS.nativeShadow) {
-
-  // }
-
-  // if (element.shadowRoot.children.length < 1)
-  //   element.shadowRoot.appendChild(template.content);
-  // else
-  //   element.shadowRoot.replaceChild(template.content.cloneNode(true), element.shadowRoot.firstChild);
-
-};
-
-const IDOMComponent =  (factory) => {
-
-  factory.render = decorate(factory.render, (next, component, ...args) => {
-    patch(component.element, () => next(component, ...args));
+    console.error('idom', component)
+    patch(component.element, next, component);
   });
 
-  factory.create = decorate(factory.create, (next, component, ...args) => {
+  tagNames.push(tagName.toUpperCase());
 
-    let hooks = next(component, ...args);
 
-    if (!isObject(hooks) || isNull(hooks))
-      hooks = {};
-
-    if (isFunction(hooks.render)) {
-      hooks.render = decorate(hooks.render, (next, ...args) => {
-        patch(component.element, () => next(...args));
-      });
-    }
-
-    return hooks;
-  });
-
-  tagNames.push(factory.tagName.toUpperCase());
-
-  return factory;
+  return definition;
 };
 
 const renderComponent = (...args) => renderElement(...args, skip);
 
 export {
-  IDOMComponent as default,
-  patch,
+  IDOMDefinition as default,
   renderComponent
 };

@@ -24,8 +24,10 @@
     "dom"
   ],
   "dependencies": {
-    "idom-util": "^1.0.2",
-    "lodash.debounce": "^4.0.8",
+    "idom-util": "^1.0.3",
+    "lodash.debounce": "^4.0.8"
+  },
+  "peerDependencies": {
     "pwet": "^1.4.4"
   }
 }
