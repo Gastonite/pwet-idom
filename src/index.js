@@ -12,7 +12,7 @@ import {
 
 const tagNames = [];
 
-const $initialize = Symbol('__initialize');
+const $update = Symbol('__update');
 const $properties = Symbol('__properties');
 
 
@@ -23,7 +23,7 @@ attributes[symbols.default] = (element, name, value) => {
   if (!($pwet in element))
     return void defaultAttributeApply(element, name, value);
 
-  const { definition, initialize } = element[$pwet];
+  const { definition, update } = element[$pwet];
   const { tagName, verbose, properties } = definition;
 
   if (!(name in properties))
@@ -33,10 +33,10 @@ attributes[symbols.default] = (element, name, value) => {
     console.log('IDOM applyProperty', name, value);
   //console.error(`[${tagName}]`, 'IDOM', name, value);
 
-  if (!element[$initialize])
-    element[$initialize] = debounce(() => {
+  if (!element[$update])
+    element[$update] = debounce(() => {
 
-      initialize(element[$properties], { partial: true });
+      update(element[$properties], { partial: true });
 
       element[$properties] = {};
     }, 0);
@@ -46,7 +46,7 @@ attributes[symbols.default] = (element, name, value) => {
 
   element[$properties][name] = value;
 
-  element[$initialize]();
+  element[$update]();
 };
 
 const IDOMDefinition = (definition = {}) => {
