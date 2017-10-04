@@ -28,6 +28,6 @@
     "lodash.debounce": "^4.0.8"
   },
   "peerDependencies": {
-    "pwet": "^1.4.4"
+    "pwet": "^2.0.0"
   }
 }
