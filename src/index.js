@@ -43,13 +43,10 @@ attributes[symbols.default] = (element, name, value) => {
 
 const IDOMComponent = (component) => {
 
-  console.error('IDOMComponent()');
-
   const { hooks } = component;
 
   hooks.render = decorate(hooks.render, (next, component) => {
 
-    console.error('IDOMComponent.render()');
     patch(component.root, next, component);
   });
 
