@@ -1,22 +1,13 @@
 import { patch, currentElement, skip, renderHeading, renderElement, text } from 'idom-util';
-import { isFunction, isNull, isObject, isUndefined } from "kwak";
-import { decorate, noop } from "pwet/src/utilities";
-import { $pwet, Definition } from "pwet";
+import { decorate } from "pwet/src/utilities";
+import { $pwet } from "pwet";
 import debounce from "lodash.debounce";
-import {
-  attributes,
-  applyProp,
-  applyAttr,
-  symbols
-} from 'incremental-dom';
-
-const tagNames = [];
+import { attributes, applyProp, symbols } from 'incremental-dom';
 
 const $update = Symbol('__update');
 const $properties = Symbol('__properties');
-
-
 const defaultAttributeApply = attributes[symbols.default];
+
 
 attributes[symbols.default] = (element, name, value) => {
 
@@ -49,27 +40,25 @@ attributes[symbols.default] = (element, name, value) => {
   element[$update]();
 };
 
-const IDOMDefinition = (definition = {}) => {
 
-  console.error(`<${definition.tagName}>`, 'IDOMRenderer()');
+const IDOMComponent = (component) => {
 
-  const { tagName, hooks } = definition = Definition.parseDefinition(definition);
+  console.error('IDOMComponent()');
+
+  const { hooks } = component;
 
   hooks.render = decorate(hooks.render, (next, component) => {
 
-    console.error('idom', component)
-    patch(component.element, next, component);
+    console.error('IDOMComponent.render()');
+    patch(component.root, next, component);
   });
 
-  tagNames.push(tagName.toUpperCase());
-
-
-  return definition;
+  return component;
 };
 
 const renderComponent = (...args) => renderElement(...args, skip);
 
 export {
-  IDOMDefinition as default,
+  IDOMComponent as default,
   renderComponent
 };
