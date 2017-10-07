@@ -2,7 +2,7 @@ import { patch, currentElement, skip, renderHeading, renderElement, text } from 
 import { decorate } from "pwet/src/utilities";
 import { $pwet } from "pwet";
 import debounce from "lodash.debounce";
-import { attributes, applyProp, symbols } from 'incremental-dom';
+import { attributes, applyProp, applyAttr, symbols } from 'incremental-dom';
 
 const $update = Symbol('__update');
 const $properties = Symbol('__properties');
@@ -15,10 +15,15 @@ attributes[symbols.default] = (element, name, value) => {
     return void defaultAttributeApply(element, name, value);
 
   const { definition, update } = element[$pwet];
-  const { tagName, verbose, properties } = definition;
+  const { tagName, verbose, properties, attributes } = definition;
 
-  if (!(name in properties))
+  if (name in attributes) {
+    return void applyAttr(element, name, value);
+  }
+
+  if (!(name in properties)) {
     return void defaultAttributeApply(element, name, value);
+  }
 
   if (verbose)
     console.log('IDOM applyProperty', name, value);
